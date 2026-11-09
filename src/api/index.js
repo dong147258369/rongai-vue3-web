@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { DEFAULT_SCENES, DEFAULT_INCLUSIVE_SCENE_DETAIL } from './mockData'
 
 const request = axios.create({
   baseURL: '/api/v1',
@@ -16,14 +17,27 @@ request.interceptors.response.use(
     }
   },
   error => {
-    console.error('Request network error:', error)
+    // 静默降级：在 GitHub Pages 等无后端的纯静态托管环境下，自动返回演示数据
+    console.warn('后端网络请求未命中 (当前可能处于纯静态演示环境，自动降级为内置演示数据):', error.config?.url)
     return Promise.reject(error)
   }
 )
 
 export const cockpitApi = {
-  getScenes: () => request.get('/cockpit/scenes'),
-  getSceneDetail: (key) => request.get(`/cockpit/scene/${key}`)
+  getScenes: async () => {
+    try {
+      return await request.get('/cockpit/scenes')
+    } catch (e) {
+      return DEFAULT_SCENES
+    }
+  },
+  getSceneDetail: async (key) => {
+    try {
+      return await request.get(`/cockpit/scene/${key}`)
+    } catch (e) {
+      return DEFAULT_INCLUSIVE_SCENE_DETAIL
+    }
+  }
 }
 
 export const iepApi = {
