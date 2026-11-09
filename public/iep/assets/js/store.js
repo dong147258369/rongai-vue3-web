@@ -398,7 +398,7 @@
     return null;
   }
 
-  var API_BASE = 'http://localhost:8090/api/v1/iep';
+  var API_BASE = '/api/v1/iep';
   var backendTimer = null;
 
   function toCaseCode(id) {
