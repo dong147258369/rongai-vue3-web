@@ -400,6 +400,11 @@
 
   var API_BASE = '/api/v1/iep';
   var backendTimer = null;
+  var isStaticHost = typeof window !== 'undefined' && (
+    window.location.hostname.indexOf('github.io') >= 0 ||
+    window.location.hostname.indexOf('gitee.io') >= 0 ||
+    window.location.protocol === 'file:'
+  );
 
   function toCaseCode(id) {
     if (!id || id === 'C-2026-048') return 'case-048';
@@ -410,7 +415,7 @@
   }
 
   function syncToBackend() {
-    if (!state || !state.currentId) return;
+    if (isStaticHost || !state || !state.currentId) return;
     clearTimeout(backendTimer);
     backendTimer = setTimeout(function () {
       try {
@@ -452,6 +457,10 @@
   }
 
   function fetchFromBackend(cid, cb) {
+    if (isStaticHost) {
+      if (typeof cb === 'function') cb(null, state);
+      return;
+    }
     if (!cid) cid = state.currentId || 'C-2026-048';
     var code = toCaseCode(cid);
     fetch(API_BASE + '/cases/' + code)
@@ -1338,16 +1347,18 @@
       state.doc.effectiveBy = by;
       state.doc.effectiveAt = today();
       persist();
-      try {
-        var curCode = toCaseCode(state.currentId);
-        fetch(API_BASE + '/cases/' + curCode + '/document/effective', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ effectiveBy: by })
-        }).then(function(r){return r.json();})
-          .then(function(d){console.log('[Java API] 成稿生效状态已成功写入 MySQL (/cases/' + curCode + '/document/effective):', d);})
-          .catch(function(e){console.warn('[Java API] 生效网络请求异常:', e);});
-      } catch(e){}
+      if (!isStaticHost) {
+        try {
+          var curCode = toCaseCode(state.currentId);
+          fetch(API_BASE + '/cases/' + curCode + '/document/effective', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ effectiveBy: by })
+          }).then(function(r){return r.json();})
+            .then(function(d){console.log('[Java API] 成稿生效状态已成功写入 MySQL (/cases/' + curCode + '/document/effective):', d);})
+            .catch(function(e){console.warn('[Java API] 生效网络请求异常:', e);});
+        } catch(e){}
+      }
     },
     /* ---------- 待办 ---------- */
     toggleTodo: function (id) {
